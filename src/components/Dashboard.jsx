@@ -1,269 +1,177 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Shield, Layers, Radio, Globe, Cpu, Database, Activity, Terminal } from "lucide-react";
+import React, { useState } from "react";
+import { ShieldCheck, HardDrive, Cpu, Radio, ChevronRight, Activity, FileDigit } from "lucide-react";
+import NetworkTopology from "./NetworkTopology.jsx";
+
+// Helper to format bytes
+const formatBytes = (bytes, decimals = 1) => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+};
 
 export default function Dashboard({ files, blockchain, wallet, onTabChange }) {
-  const radarRef = useRef(null);
-  const [terminalLogs, setTerminalLogs] = useState([]);
-
-  // Calculate stats
   const totalFiles = files.length;
   const totalSize = files.reduce((acc, f) => acc + f.size, 0);
-  const formattedSize = totalSize > 1024 * 1024 
-    ? `${(totalSize / (1024 * 1024)).toFixed(1)} MB` 
-    : totalSize > 1024 
-    ? `${(totalSize / 1024).toFixed(1)} KB` 
-    : `${totalSize} B`;
 
-  // Telemetry logs simulation
-  useEffect(() => {
-    const logs = [
-      "SYSTEM DECENTRALIZED PROTOCOL INITIALIZED...",
-      "LOCAL SANDBOX NODE STARTED ON IP 127.0.0.1:4001",
-      `GENESIS BLOCK VERIFIED: ${blockchain[0]?.hash.substring(0, 24)}...`,
-      "ESTABLISHING HANDSHAKES WITH PEER NODES...",
-      "CONNECTED PEER: US-EAST-01 (104.244.42.1) - PING: 22ms",
-      "CONNECTED PEER: EU-WEST-02 (185.199.108.15) - PING: 78ms",
-      "CONNECTED PEER: SG-EAST-01 (45.64.254.21) - PING: 134ms",
-    ];
-
-    setTerminalLogs(logs);
-
-    const interval = setInterval(() => {
-      const peers = ["US-EAST-01", "EU-WEST-02", "SG-EAST-01", "AU-SOUTH-01", "SA-EAST-01"];
-      const randomPeer = peers[Math.floor(Math.random() * peers.length)];
-      const ping = Math.floor(15 + Math.random() * 140);
-      const newLog = `[TELEMETRY] ${randomPeer} block sync completed. Latency: ${ping}ms`;
-      
-      setTerminalLogs(prev => [...prev.slice(-8), newLog]);
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, [blockchain]);
-
-  // Canvas Radar Animation
-  useEffect(() => {
-    const canvas = radarRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    let animationId;
-    let sweepAngle = 0;
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = 300 * dpr;
-    canvas.height = 200 * dpr;
-    canvas.style.width = "300px";
-    canvas.style.height = "200px";
-    ctx.scale(dpr, dpr);
-
-    const blips = [
-      { x: 150 + 60, y: 100 - 40, label: "US-E1", angle: Math.atan2(-40, 60), lastDetected: 0 },
-      { x: 150 - 80, y: 100 - 10, label: "EU-W2", angle: Math.atan2(-10, -80), lastDetected: 0 },
-      { x: 150 + 40, y: 100 + 50, label: "SG-E1", angle: Math.atan2(50, 40), lastDetected: 0 },
-      { x: 150 - 30, y: 100 + 40, label: "AU-S1", angle: Math.atan2(40, -30), lastDetected: 0 },
-    ];
-
-    const drawRadar = () => {
-      ctx.clearRect(0, 0, 300, 200);
-
-      const cx = 150;
-      const cy = 100;
-      const maxRadius = 90;
-
-      // Draw radar screen backdrop
-      ctx.beginPath();
-      ctx.arc(cx, cy, maxRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(120, 86, 255, 0.02)";
-      ctx.fill();
-      ctx.strokeStyle = "rgba(120, 86, 255, 0.1)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Draw concentric rings
-      [30, 60, 90].forEach(r => {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(120, 86, 255, 0.05)";
-        ctx.stroke();
-      });
-
-      // Draw grid axes
-      ctx.beginPath();
-      ctx.moveTo(cx - maxRadius, cy);
-      ctx.lineTo(cx + maxRadius, cy);
-      ctx.moveTo(cx, cy - maxRadius);
-      ctx.lineTo(cx, cy + maxRadius);
-      ctx.strokeStyle = "rgba(120, 86, 255, 0.05)";
-      ctx.stroke();
-
-      // Draw sweeping hand line
-      sweepAngle = (sweepAngle + 0.015) % (Math.PI * 2);
-      const sweepX = cx + Math.cos(sweepAngle) * maxRadius;
-      const sweepY = cy + Math.sin(sweepAngle) * maxRadius;
-
-      // Draw sweep tail gradient
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
-      grad.addColorStop(0, "rgba(120, 86, 255, 0)");
-      grad.addColorStop(1, "rgba(120, 86, 255, 0.05)");
-
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, maxRadius, sweepAngle - 0.4, sweepAngle);
-      ctx.lineTo(cx, cy);
-      ctx.fillStyle = "rgba(120, 86, 255, 0.08)";
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(sweepX, sweepY);
-      ctx.strokeStyle = "rgba(120, 86, 255, 0.4)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Update and Draw Blips
-      blips.forEach(b => {
-        // Check if radar sweep crosses blip angle
-        const diff = Math.abs(sweepAngle - (b.angle < 0 ? b.angle + Math.PI * 2 : b.angle));
-        if (diff < 0.05) {
-          b.lastDetected = Date.now();
-        }
-
-        const timePassed = Date.now() - b.lastDetected;
-        const opacity = Math.max(0, 1 - timePassed / 2000); // 2-second fade
-
-        if (opacity > 0) {
-          ctx.beginPath();
-          ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(54, 249, 246, ${opacity})`;
-          ctx.shadowColor = "#36f9f6";
-          ctx.shadowBlur = 6;
-          ctx.fill();
-          ctx.shadowBlur = 0; // reset
-
-          ctx.font = "8px Share Tech Mono";
-          ctx.fillStyle = `rgba(54, 249, 246, ${opacity * 0.8})`;
-          ctx.fillText(b.label, b.x + 8, b.y + 3);
-        }
-      });
-
-      animationId = requestAnimationFrame(drawRadar);
-    };
-
-    drawRadar();
-
-    return () => cancelAnimationFrame(animationId);
-  }, []);
+  // Take latest 3 blocks to display in audit feed
+  const latestBlocks = [...blockchain]
+    .sort((a, b) => b.index - a.index)
+    .slice(0, 3);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
-      {/* Top Banner Overview */}
-      <div className="hud-panel" style={{ padding: "20px", background: "linear-gradient(135deg, rgba(8,14,38,0.7), rgba(189,0,255,0.03))" }}>
-        <div className="hud-corner-tag">network status // node overview</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+      {/* 1. Hero Title Section */}
+      <div style={{ padding: "8px 0" }}>
+        <h1 
+          style={{ 
+            fontSize: "36px", 
+            fontWeight: "800", 
+            letterSpacing: "-1px", 
+            lineHeight: "1.2", 
+            color: "var(--text-primary)", 
+            marginBottom: "12px" 
+          }}
+        >
+          Decentralized Storage Infrastructure
+        </h1>
+        <p 
+          style={{ 
+            fontSize: "16px", 
+            lineHeight: "1.6", 
+            color: "var(--text-secondary)", 
+            maxWidth: "700px" 
+          }}
+        >
+          Anchor encrypted shards to a secure, zero-knowledge peer mesh. Powered by client-side Web Crypto and block consensus verification.
+        </p>
+      </div>
+
+      {/* 2. Hero: Living Network Topology Visualization */}
+      <div className="hud-panel" style={{ padding: "28px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <div>
-            <h1 className="led-text animate-glitch" style={{ fontSize: "24px", fontWeight: "800", letterSpacing: "1px" }}>
-              ANON FILE NETWORK
-            </h1>
-            <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-              P2P Encrypted Storage Web Dashboard. Connected with Sandbox Client.
-            </p>
+            <h3 style={{ fontSize: "14px", fontWeight: "600", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+              <Radio size={15} style={{ color: "var(--accent-indigo)" }} /> LIVING NETWORK TOPOLOGY
+            </h3>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Real-time 60fps packet transmission and peer handshakes</span>
           </div>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <button onClick={() => onTabChange("upload")} className="btn-neon">
-              SECURE UPLOAD
-            </button>
-            <button onClick={() => onTabChange("vault")} className="btn-neon purple">
-              OPEN VAULT
-            </button>
+          <div style={{ display: "flex", gap: "12px", fontSize: "11px", fontFamily: "var(--font-mono)" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ display: "inline-block", width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent-emerald)" }} /> Uptime 99.98%</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ display: "inline-block", width: "5px", height: "5px", borderRadius: "50%", background: "var(--accent-blue)" }} /> Latency 44ms</span>
           </div>
         </div>
-      </div>
-
-      {/* Grid statistics */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
-        {/* Stat 1 */}
-        <div className="hud-panel" style={{ padding: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-            <span style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>ACTIVE PEERS</span>
-            <Radio size={16} className="led-text" />
-          </div>
-          <div className="led-text" style={{ fontSize: "28px", fontWeight: "800" }}>4 ONLINE</div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Simulated cluster connections</div>
-        </div>
-
-        {/* Stat 2 */}
-        <div className="hud-panel" style={{ padding: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-            <span style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>BLOCK HEIGHT</span>
-            <Layers size={16} className="led-text purple" />
-          </div>
-          <div className="led-text purple" style={{ fontSize: "28px", fontWeight: "800" }}>#{blockchain.length - 1}</div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Latest block mined successfully</div>
-        </div>
-
-        {/* Stat 3 */}
-        <div className="hud-panel" style={{ padding: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-            <span style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>DATA INDEXED</span>
-            <Database size={16} className="led-text yellow" />
-          </div>
-          <div className="led-text yellow" style={{ fontSize: "28px", fontWeight: "800" }}>{formattedSize}</div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>{totalFiles} Encrypted Vault Files</div>
-        </div>
-
-        {/* Stat 4 */}
-        <div className="hud-panel" style={{ padding: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-            <span style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>GATEWAY CAPABILITY</span>
-            <Globe size={16} className="led-text green" />
-          </div>
-          <div className="led-text green" style={{ fontSize: "28px", fontWeight: "800" }}>
-            {wallet.connected ? "ACTIVE" : "STANDBY"}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
-            {wallet.connected ? `WALLET ${wallet.address.substring(0, 6)}...` : "ANONYMOUS READ ONLY"}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Radar and Terminal logs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
         
-        {/* Radar Peer Map */}
-        <div className="hud-panel flex-center" style={{ padding: "20px", flexDirection: "column", minHeight: "280px" }}>
-          <div className="hud-corner-tag">peer locator // ping scanner</div>
-          <canvas ref={radarRef} style={{ display: "block" }} />
-          <div style={{ display: "flex", gap: "15px", marginTop: "10px", fontSize: "10px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Activity size={10} className="led-text" /> PING: AVG 56ms</span>
-            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Activity size={10} className="led-text purple" /> JITTER: ±4ms</span>
+        {/* Living Topology Canvas Component */}
+        <NetworkTopology />
+      </div>
+
+      {/* 3. Stat summaries card row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px" }}>
+        {/* Stat Item: Nodes */}
+        <div className="hud-panel" style={{ padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", letterSpacing: "0.5px" }}>ACTIVE PEERS</span>
+            <Radio size={14} style={{ color: "var(--accent-indigo)" }} />
+          </div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--text-primary)" }}>
+            4 Cluster Nodes
+          </div>
+          <div style={{ fontSize: "11.5px", color: "var(--text-secondary)", marginTop: "6px" }}>
+            Simulating local gateway peers
           </div>
         </div>
 
-        {/* Console Terminal Logs */}
-        <div className="hud-panel" style={{ padding: "20px", display: "flex", flexDirection: "column", minHeight: "280px" }}>
-          <div className="hud-corner-tag">system logs // telemetry</div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px", borderBottom: "1px solid rgba(0, 243, 255, 0.1)", paddingBottom: "6px" }}>
-            <Terminal size={14} className="led-text" />
-            <h3 className="led-text" style={{ fontSize: "12px" }}>CLIENT TELEMETRY TERMINAL</h3>
+        {/* Stat Item: Height */}
+        <div className="hud-panel" style={{ padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", letterSpacing: "0.5px" }}>CONSENSUS HEIGHT</span>
+            <Activity size={14} style={{ color: "var(--accent-emerald)" }} />
           </div>
-          <div 
-            style={{ 
-              flex: 1, 
-              background: "rgba(0, 0, 0, 0.4)", 
-              padding: "12px", 
-              borderRadius: "4px", 
-              fontFamily: "var(--font-mono)", 
-              fontSize: "11px", 
-              color: "var(--text-secondary)",
-              lineHeight: "1.6",
-              overflowY: "auto",
-              maxHeight: "180px"
-            }}
-          >
-            {terminalLogs.map((log, idx) => (
-              <div key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.02)", padding: "2px 0" }}>
-                <span className="led-text" style={{ marginRight: "6px" }}>&gt;</span>
-                {log}
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--text-primary)" }}>
+            Block #{blockchain.length - 1}
+          </div>
+          <div style={{ fontSize: "11.5px", color: "var(--text-secondary)", marginTop: "6px" }}>
+            Mined via Proof-of-Work algorithm
+          </div>
+        </div>
+
+        {/* Stat Item: Space */}
+        <div className="hud-panel" style={{ padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", letterSpacing: "0.5px" }}>VAULT CAPACITY</span>
+            <HardDrive size={14} style={{ color: "var(--accent-blue)" }} />
+          </div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--text-primary)" }}>
+            {formatBytes(totalSize)}
+          </div>
+          <div style={{ fontSize: "11.5px", color: "var(--text-secondary)", marginTop: "6px" }}>
+            {totalFiles} Encrypted directory assets
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Action portal and Activity Logs */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", alignItems: "start" }}>
+        
+        {/* Storage Quick Actions */}
+        <div className="hud-panel" style={{ padding: "24px" }}>
+          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>INFRASTRUCTURE QUICK ACTIONS</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <button 
+              onClick={() => onTabChange("upload")}
+              className="btn-neon"
+              style={{ width: "100%", justifyContent: "space-between" }}
+            >
+              <span>Disperse Encrypted Shards</span>
+              <ChevronRight size={16} />
+            </button>
+            <button 
+              onClick={() => onTabChange("vault")}
+              className="btn-neon purple"
+              style={{ width: "100%", justifyContent: "space-between" }}
+            >
+              <span>Browse File Vault Directory</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Recent Ledger Audit Trail */}
+        <div className="hud-panel" style={{ padding: "24px" }}>
+          <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <ShieldCheck size={16} style={{ color: "var(--accent-emerald)" }} /> LEDGER CONSENSUS AUDITS
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {latestBlocks.map((block) => (
+              <div 
+                key={block.index} 
+                style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  borderBottom: "1px solid var(--border-color)", 
+                  paddingBottom: "10px" 
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "500", color: "var(--text-primary)" }}>
+                    {block.data.event === "GENESIS" ? "Protocol Genesis Mined" : block.data.event === "UPLOAD" ? "File Anchor Mined" : "Ledger Statement Mined"}
+                  </span>
+                  <span className="hash-pill" style={{ maxWidth: "160px" }}>
+                    {block.hash}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--accent-indigo)" }}>
+                    BLOCK #{block.index}
+                  </span>
+                  <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>
+                    Nonce {block.nonce}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

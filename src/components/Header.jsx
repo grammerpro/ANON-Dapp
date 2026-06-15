@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Wifi, Cpu, Layers } from "lucide-react";
+import { Server, Wallet, Activity } from "lucide-react";
 
 export default function Header({ activeTab, onTabChange, wallet, onConnectWallet, blockchainLength }) {
   const formatAddress = (addr) => {
@@ -11,104 +11,113 @@ export default function Header({ activeTab, onTabChange, wallet, onConnectWallet
     <header 
       className="hud-panel" 
       style={{ 
-        padding: "12px 24px", 
+        padding: "16px 28px", 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
         flexWrap: "wrap",
-        gap: "15px",
-        marginBottom: "25px",
-        background: "rgba(6, 11, 28, 0.95)",
-        zIndex: 10
+        gap: "20px",
+        marginBottom: "32px",
+        background: "rgba(15, 22, 42, 0.4)",
+        borderColor: "var(--border-color)",
+        borderRadius: "16px"
       }}
     >
-      <div className="hud-corner-tag">node connection active</div>
-
-      {/* Brand Logo */}
+      {/* Brand Identity */}
       <div 
         onClick={() => onTabChange("dashboard")}
         style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
       >
-        <Shield size={24} className="led-text animate-pulse-cyan" />
-        <span className="led-text animate-glitch" style={{ fontSize: "18px", fontWeight: "800", letterSpacing: "2px", fontFamily: "var(--font-mono)" }}>
-          ANON_DAPP //
+        <Server size={18} style={{ color: "var(--accent-indigo)" }} />
+        <span style={{ fontSize: "15px", fontWeight: "700", letterSpacing: "1.5px", color: "var(--text-primary)" }}>
+          ANON
+        </span>
+        <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "500", letterSpacing: "1px" }}>
+          // STORAGE NETWORK
         </span>
       </div>
 
-      {/* Center Navigation Tabs */}
-      <nav style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+      {/* Center Tabs */}
+      <nav style={{ display: "flex", gap: "8px" }}>
         {[
-          { id: "dashboard", label: "DASHBOARD" },
-          { id: "upload", label: "UPLOAD PORTAL" },
-          { id: "vault", label: "FILE VAULT" },
-          { id: "chat", label: "ANON CHAT" },
-          { id: "settings", label: "GATEWAY CFG" }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            style={{
-              background: activeTab === tab.id ? "rgba(0, 243, 255, 0.12)" : "transparent",
-              color: activeTab === tab.id ? "var(--neon-cyan)" : "var(--text-secondary)",
-              border: "none",
-              borderBottom: activeTab === tab.id ? "2px solid var(--neon-cyan)" : "2px solid transparent",
-              fontFamily: "var(--font-mono)",
-              fontSize: "12px",
-              fontWeight: "600",
-              letterSpacing: "0.5px",
-              padding: "8px 16px",
-              cursor: "pointer",
-              transition: "all 0.2s ease"
-            }}
-            onMouseOver={(e) => {
-              if (activeTab !== tab.id) e.currentTarget.style.color = "var(--neon-cyan)";
-            }}
-            onMouseOut={(e) => {
-              if (activeTab !== tab.id) e.currentTarget.style.color = "var(--text-secondary)";
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+          { id: "dashboard", label: "Dashboard" },
+          { id: "upload", label: "Upload" },
+          { id: "vault", label: "Vault Directory" },
+          { id: "chat", label: "Consensus Ledger" },
+          { id: "settings", label: "Settings" }
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              style={{
+                background: isActive ? "rgba(255, 255, 255, 0.05)" : "transparent",
+                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                border: "none",
+                borderRadius: "8px",
+                fontFamily: "var(--font-main)",
+                fontSize: "13px",
+                fontWeight: isActive ? "500" : "400",
+                padding: "8px 16px",
+                cursor: "pointer",
+                transition: "all 200ms var(--ease-in-out)"
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </nav>
 
-      {/* Web3 status details */}
-      <div style={{ display: "flex", alignItems: "center", gap: "15px", flexWrap: "wrap" }}>
-        
-        {/* Ledger Sync Status */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-          <Layers size={13} className="led-text purple" />
-          <span>LEDGER: <span className="led-text purple">#{blockchainLength - 1}</span></span>
+      {/* Wallet Connection Status */}
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        {/* Ledger height indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)" }}>
+          <Activity size={14} style={{ color: "var(--accent-emerald)" }} />
+          <span>Block: <strong className="led-text green">#{blockchainLength - 1}</strong></span>
         </div>
 
-        {/* Node Active Status */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-          <Wifi size={13} className="led-text green" />
-          <span>NET: <span className="led-text green">ONLINE</span></span>
-        </div>
-
-        {/* Connect Button */}
         {wallet.connected ? (
           <div 
             style={{ 
               display: "flex", 
               alignItems: "center", 
               gap: "8px", 
-              background: "rgba(0, 243, 255, 0.08)", 
-              border: "1px solid rgba(0, 243, 255, 0.3)", 
-              borderRadius: "4px",
-              padding: "6px 12px",
+              background: "rgba(255, 255, 255, 0.04)", 
+              border: "1px solid var(--border-color)", 
+              borderRadius: "8px",
+              padding: "8px 14px",
+              fontSize: "12.5px",
               fontFamily: "var(--font-mono)",
-              fontSize: "12px"
+              color: "var(--text-primary)"
             }}
           >
-            <Cpu size={14} className="led-text" />
-            <span className="led-text">{formatAddress(wallet.address)}</span>
-            <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>({wallet.balance} ETH)</span>
+            <span 
+              style={{ 
+                display: "inline-block", 
+                width: "6px", 
+                height: "6px", 
+                background: "var(--accent-emerald)", 
+                borderRadius: "50%" 
+              }} 
+            />
+            <span>{formatAddress(wallet.address)}</span>
+            <span style={{ color: "var(--text-secondary)", fontSize: "11px" }}>({wallet.balance} ETH)</span>
           </div>
         ) : (
-          <button onClick={onConnectWallet} className="btn-neon" style={{ padding: "6px 14px", fontSize: "11px" }}>
-            CONNECT WALLET
+          <button 
+            onClick={onConnectWallet} 
+            className="btn-neon purple" 
+            style={{ 
+              padding: "8px 16px", 
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
+          >
+            <Wallet size={13} /> Connect Wallet
           </button>
         )}
       </div>

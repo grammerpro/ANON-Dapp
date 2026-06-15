@@ -214,20 +214,20 @@ export default function App() {
           </>
         )}
 
-        {/* Global HUD Footer */}
+        {/* Global Footer */}
         <footer 
           style={{ 
-            marginTop: "50px", 
-            padding: "20px 0 10px 0", 
+            marginTop: "60px", 
+            padding: "24px 0", 
             textAlign: "center", 
             fontSize: "11px", 
             fontFamily: "var(--font-mono)", 
-            color: "var(--text-muted)", 
-            borderTop: "1px solid rgba(0, 243, 255, 0.08)",
-            letterSpacing: "1px" 
+            color: "var(--text-secondary)", 
+            borderTop: "1px solid var(--border-color)",
+            letterSpacing: "1.5px" 
           }}
         >
-          ANON_DAPP // PEER CLIENT NODE ENABLED // PROTOCOL v1.2.0 // DECENTRALIZED FILE PORTAL SECURED
+          ANON // DECENTRALIZED CLOUD MESH INFRASTRUCTURE // CONSENSUS NODE VERIFIED
         </footer>
       </div>
     </>

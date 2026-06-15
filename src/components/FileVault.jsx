@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Folder, FileText, Image, Video, File, Download, 
-  Trash2, Share2, Globe, Clock, Lock, Key, Disc 
+  FolderIcon, FileIcon, ImageIcon, VideoIcon, 
+  Download, Trash2, Share2, Calendar, Lock, Database 
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { getLocalFile, getAllLocalFiles, deleteLocalFile } from "../utils/ipfsHelper.js";
@@ -20,15 +20,14 @@ const formatBytes = (bytes, decimals = 1) => {
 export default function FileVault({ files, setFiles, pinataJwt }) {
   const [filter, setFilter] = useState("ALL");
   const [downloadingCid, setDownloadingCid] = useState(null);
-  const [downloadProgress, setDownloadProgress] = useState(""); // text explaining decrypt stage
+  const [downloadProgress, setDownloadProgress] = useState("");
 
-  // Refresh files list
   const refreshFiles = async () => {
     try {
       const allFiles = await getAllLocalFiles();
       setFiles(allFiles.sort((a, b) => b.uploadedAt - a.uploadedAt));
     } catch (e) {
-      console.error("Failed to load vault files:", e);
+      console.error("Vault retrieval error:", e);
     }
   };
 
@@ -37,7 +36,7 @@ export default function FileVault({ files, setFiles, pinataJwt }) {
   }, []);
 
   const handleDelete = async (cid) => {
-    if (window.confirm("Are you sure you want to unpin/delete this file from your local node?")) {
+    if (window.confirm("Delete this encrypted asset from local peer cache?")) {
       await deleteLocalFile(cid);
       refreshFiles();
     }
@@ -48,36 +47,32 @@ export default function FileVault({ files, setFiles, pinataJwt }) {
     const shareUrl = `${baseUrl}#/share/${file.cid}#key=${file.key}&iv=${file.iv}&name=${encodeURIComponent(file.name)}&mime=${encodeURIComponent(file.mimeType)}`;
     
     navigator.clipboard.writeText(shareUrl);
-    alert("Zero-Knowledge Secure Link Copied!\n\nThis link contains the decryption key in the hash fragment. It is parsed completely client-side. The key is never transmitted over HTTP.");
+    alert("Zero-knowledge link copied. Decryption metadata is contained in the hash fragment and never travels over HTTP.");
   };
 
   const handleDownload = async (file) => {
     setDownloadingCid(file.cid);
-    setDownloadProgress("LOCATING ENCRYPTED PEER SHARDS...");
+    setDownloadProgress("Locating encrypted shards...");
     await new Promise((r) => setTimeout(r, 600));
 
     try {
-      // 1. Fetch file from local node store
-      setDownloadProgress("PULLING SHARDS & RECONSTRUCTING BUFFER...");
+      setDownloadProgress("Fetching segments from node mesh...");
       const localRecord = await getLocalFile(file.cid);
       if (!localRecord) {
-        throw new Error("File not found on local node");
+        throw new Error("File not indexed on this node");
       }
       await new Promise((r) => setTimeout(r, 600));
 
-      // 2. Import Key
-      setDownloadProgress("IMPORTING AES SYMMETRIC CRYPTO-KEY...");
+      setDownloadProgress("Synthesizing AES decryption cipher...");
       const cryptoKey = await importKey(file.key);
       const ivBuf = base64UrlToIv(file.iv);
       await new Promise((r) => setTimeout(r, 500));
 
-      // 3. Decrypt
-      setDownloadProgress("DECRYPTING PAYLOAD WITH AES-GCM-256...");
+      setDownloadProgress("Executing client-side AES-GCM-256 decryption...");
       const decryptedBuffer = await decryptData(localRecord.ciphertext, cryptoKey, ivBuf);
       await new Promise((r) => setTimeout(r, 400));
 
-      // 4. Download Trigger
-      setDownloadProgress("ASSEMBLING FILE BLOB & RELEASING TO SYSTEM...");
+      setDownloadProgress("Releasing decrypted data to browser...");
       const blob = new Blob([decryptedBuffer], { type: file.mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -88,37 +83,35 @@ export default function FileVault({ files, setFiles, pinataJwt }) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Trigger Confetti Celebration!
+      // Trigger Confetti
       confetti({
-        particleCount: 80,
-        spread: 60,
+        particleCount: 60,
+        spread: 50,
         origin: { y: 0.8 },
-        colors: ["#00f3ff", "#bd00ff", "#ff0080"]
+        colors: ["#6366F1", "#60A5FA", "#10B981"]
       });
 
     } catch (e) {
-      console.error("Decrypt download error:", e);
-      alert("Decrypt download failed. Review console logs.");
+      console.error("Link assembly error:", e);
+      alert("Decryption stream failure. Verify key parameters.");
     } finally {
       setDownloadingCid(null);
       setDownloadProgress("");
     }
   };
 
-  // Filter categorization logic
   const getFileIcon = (mimeType) => {
-    if (!mimeType) return <File size={18} />;
-    if (mimeType.startsWith("image/")) return <Image size={18} />;
-    if (mimeType.startsWith("video/")) return <Video size={18} />;
-    if (mimeType.startsWith("text/") || mimeType.includes("pdf") || mimeType.includes("word")) return <FileText size={18} />;
-    return <File size={18} />;
+    if (!mimeType) return <FileIcon size={16} />;
+    if (mimeType.startsWith("image/")) return <ImageIcon size={16} />;
+    if (mimeType.startsWith("video/")) return <VideoIcon size={16} />;
+    return <FileIcon size={16} />;
   };
 
   const getCategory = (mimeType) => {
     if (!mimeType) return "OTHER";
     if (mimeType.startsWith("image/")) return "IMAGES";
     if (mimeType.startsWith("video/")) return "VIDEOS";
-    if (mimeType.startsWith("text/") || mimeType.includes("pdf") || mimeType.includes("word") || mimeType.includes("zip") || mimeType.includes("json")) return "DOCUMENTS";
+    if (mimeType.startsWith("text/") || mimeType.includes("pdf") || mimeType.includes("word") || mimeType.includes("zip")) return "DOCUMENTS";
     return "OTHER";
   };
 
@@ -128,68 +121,73 @@ export default function FileVault({ files, setFiles, pinataJwt }) {
   });
 
   return (
-    <div className="hud-panel" style={{ padding: "24px", minHeight: "450px" }}>
-      <div className="hud-corner-tag">secure vault // local peer store</div>
+    <div className="hud-panel" style={{ padding: "32px", minHeight: "480px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px", flexWrap: "wrap", gap: "15px" }}>
+        <div>
+          <h2 style={{ fontSize: "18px", fontWeight: "700", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "10px" }}>
+            <FolderIcon size={20} style={{ color: "var(--accent-indigo)" }} /> File Vault Directory
+          </h2>
+          <p style={{ fontSize: "13.5px", color: "var(--text-secondary)", marginTop: "2px" }}>
+            Encrypted file index registered to the local gateway client.
+          </p>
+        </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
-        <h2 className="led-text" style={{ fontSize: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <Folder size={22} /> DECENTRALIZED FILE VAULT
-        </h2>
-
-        {/* Tab Filters */}
-        <div style={{ display: "flex", gap: "8px", background: "rgba(0,0,0,0.3)", padding: "4px", borderRadius: "6px", border: "1px solid rgba(0, 243, 255, 0.1)" }}>
-          {["ALL", "DOCUMENTS", "IMAGES", "VIDEOS", "OTHER"].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              style={{
-                background: filter === cat ? "var(--neon-cyan)" : "transparent",
-                color: filter === cat ? "var(--bg-primary)" : "var(--text-secondary)",
-                border: "none",
-                fontFamily: "var(--font-mono)",
-                fontSize: "11px",
-                padding: "6px 12px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: filter === cat ? "600" : "400",
-                transition: "all 0.2s"
-              }}
-            >
-              {cat}
-            </button>
-          ))}
+        {/* Categories Tabs */}
+        <div style={{ display: "flex", gap: "4px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+          {["ALL", "DOCUMENTS", "IMAGES", "VIDEOS", "OTHER"].map((cat) => {
+            const isActive = filter === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setFilter(cat)}
+                style={{
+                  background: isActive ? "rgba(255, 255, 255, 0.05)" : "transparent",
+                  color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                  border: "none",
+                  fontFamily: "var(--font-main)",
+                  fontSize: "11px",
+                  fontWeight: isActive ? "600" : "400",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 150ms"
+                }}
+              >
+                {cat}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Vault Grid */}
+      {/* Directory Grid */}
       {filteredFiles.length === 0 ? (
-        <div style={{ padding: "80px 0", textAlign: "center", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-          NO VAULT ENTRIES FOUND FOR CATEGORY: {filter}.
+        <div style={{ padding: "80px 0", textAlign: "center", color: "var(--text-secondary)", fontSize: "13.5px", fontFamily: "var(--font-mono)" }}>
+          NO VAULT ASSETS CLASSIFIED UNDER {filter}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
           {filteredFiles.map((file) => (
             <div 
               key={file.cid} 
               className="hud-panel" 
               style={{ 
-                background: "rgba(5, 8, 20, 0.7)", 
-                border: "1px solid rgba(0, 243, 255, 0.15)",
-                padding: "16px",
+                background: "rgba(15, 22, 42, 0.2)", 
+                borderColor: "var(--border-color)",
+                padding: "20px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "14px",
-                position: "relative"
+                gap: "16px"
               }}
             >
-              {/* Type Icon & Name */}
+              {/* Type and Title */}
               <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                 <div style={{ 
-                  background: "rgba(0, 243, 255, 0.1)", 
+                  background: "rgba(99, 102, 241, 0.08)", 
                   padding: "8px", 
-                  borderRadius: "4px", 
-                  color: "var(--neon-cyan)",
-                  border: "1px solid rgba(0, 243, 255, 0.2)"
+                  borderRadius: "8px", 
+                  color: "var(--accent-indigo)",
+                  border: "1px solid rgba(99, 102, 241, 0.15)"
                 }}>
                   {getFileIcon(file.mimeType)}
                 </div>
@@ -204,75 +202,69 @@ export default function FileVault({ files, setFiles, pinataJwt }) {
                   }} title={file.name}>
                     {file.name}
                   </h4>
-                  <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
                     {formatBytes(file.size)}
                   </span>
                 </div>
               </div>
 
-              {/* Meta information tags */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+              {/* Stats Metadata */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "11px", color: "var(--text-secondary)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Globe size={12} className="led-text" />
+                  <Database size={12} style={{ color: "var(--accent-blue)" }} />
                   <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                    CID: <span className="led-text yellow">{file.cid}</span>
+                    CID: <span className="hash-pill" style={{ padding: "2px 6px" }}>{file.cid}</span>
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Clock size={12} />
-                  <span>DATE: {new Date(file.uploadedAt).toLocaleDateString()}</span>
+                  <Calendar size={12} />
+                  <span>Indexed: {new Date(file.uploadedAt).toLocaleDateString()}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Lock size={12} className="led-text pink" />
-                  <span>CIPHER: AES-GCM-256</span>
+                  <Lock size={12} style={{ color: "var(--accent-rose)" }} />
+                  <span>Cipher: AES-GCM-256</span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+              {/* Actions row */}
+              <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
                 {downloadingCid === file.cid ? (
                   <div 
                     style={{ 
                       flex: 1, 
-                      fontSize: "10px", 
-                      fontFamily: "var(--font-mono)", 
-                      background: "rgba(0,0,0,0.3)", 
-                      padding: "8px", 
-                      borderRadius: "4px", 
-                      border: "1px dashed var(--neon-cyan)",
+                      fontSize: "11px", 
+                      background: "rgba(255, 255, 255, 0.02)", 
+                      padding: "10px", 
+                      borderRadius: "6px", 
+                      border: "1px dashed var(--border-color)",
                       textAlign: "center",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      gap: "4px"
+                      color: "var(--text-secondary)"
                     }}
                   >
-                    <Disc className="animate-spin-slow led-text" size={14} />
-                    <span className="led-text">{downloadProgress}</span>
+                    {downloadProgress}
                   </div>
                 ) : (
                   <>
                     <button 
                       onClick={() => handleDownload(file)} 
                       className="btn-neon" 
-                      style={{ flex: 1, padding: "8px", fontSize: "11px", justifyContent: "center" }}
+                      style={{ flex: 1, padding: "8px 12px", fontSize: "12px", justifyContent: "center" }}
                     >
-                      <Download size={13} /> DECRYPT
+                      <Download size={13} /> Download
                     </button>
                     <button 
                       onClick={() => handleCopyShare(file)} 
                       className="btn-neon purple" 
-                      style={{ padding: "8px", justifyContent: "center" }}
-                      title="Copy Share Link"
+                      style={{ padding: "8px 10px", justifyContent: "center" }}
+                      title="Copy share link"
                     >
                       <Share2 size={13} />
                     </button>
                     <button 
                       onClick={() => handleDelete(file.cid)} 
                       className="btn-neon pink" 
-                      style={{ padding: "8px", justifyContent: "center" }}
-                      title="Delete local copy"
+                      style={{ padding: "8px 10px", justifyContent: "center" }}
+                      title="Purge"
                     >
                       <Trash2 size={13} />
                     </button>
