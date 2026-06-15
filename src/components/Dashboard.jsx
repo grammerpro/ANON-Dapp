@@ -73,9 +73,9 @@ export default function Dashboard({ files, blockchain, wallet, onTabChange }) {
       // Draw radar screen backdrop
       ctx.beginPath();
       ctx.arc(cx, cy, maxRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0, 243, 255, 0.02)";
+      ctx.fillStyle = "rgba(120, 86, 255, 0.02)";
       ctx.fill();
-      ctx.strokeStyle = "rgba(0, 243, 255, 0.1)";
+      ctx.strokeStyle = "rgba(120, 86, 255, 0.1)";
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -83,7 +83,7 @@ export default function Dashboard({ files, blockchain, wallet, onTabChange }) {
       [30, 60, 90].forEach(r => {
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(0, 243, 255, 0.05)";
+        ctx.strokeStyle = "rgba(120, 86, 255, 0.05)";
         ctx.stroke();
       });
 
@@ -93,7 +93,7 @@ export default function Dashboard({ files, blockchain, wallet, onTabChange }) {
       ctx.lineTo(cx + maxRadius, cy);
       ctx.moveTo(cx, cy - maxRadius);
       ctx.lineTo(cx, cy + maxRadius);
-      ctx.strokeStyle = "rgba(0, 243, 255, 0.05)";
+      ctx.strokeStyle = "rgba(120, 86, 255, 0.05)";
       ctx.stroke();
 
       // Draw sweeping hand line
@@ -103,20 +103,20 @@ export default function Dashboard({ files, blockchain, wallet, onTabChange }) {
 
       // Draw sweep tail gradient
       const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
-      grad.addColorStop(0, "rgba(0, 243, 255, 0)");
-      grad.addColorStop(1, "rgba(0, 243, 255, 0.05)");
+      grad.addColorStop(0, "rgba(120, 86, 255, 0)");
+      grad.addColorStop(1, "rgba(120, 86, 255, 0.05)");
 
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, maxRadius, sweepAngle - 0.4, sweepAngle);
       ctx.lineTo(cx, cy);
-      ctx.fillStyle = "rgba(0, 243, 255, 0.08)";
+      ctx.fillStyle = "rgba(120, 86, 255, 0.08)";
       ctx.fill();
 
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(sweepX, sweepY);
-      ctx.strokeStyle = "rgba(0, 243, 255, 0.4)";
+      ctx.strokeStyle = "rgba(120, 86, 255, 0.4)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
@@ -134,14 +134,14 @@ export default function Dashboard({ files, blockchain, wallet, onTabChange }) {
         if (opacity > 0) {
           ctx.beginPath();
           ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(0, 243, 255, ${opacity})`;
-          ctx.shadowColor = "#00f3ff";
+          ctx.fillStyle = `rgba(54, 249, 246, ${opacity})`;
+          ctx.shadowColor = "#36f9f6";
           ctx.shadowBlur = 6;
           ctx.fill();
           ctx.shadowBlur = 0; // reset
 
           ctx.font = "8px Share Tech Mono";
-          ctx.fillStyle = `rgba(0, 243, 255, ${opacity * 0.8})`;
+          ctx.fillStyle = `rgba(54, 249, 246, ${opacity * 0.8})`;
           ctx.fillText(b.label, b.x + 8, b.y + 3);
         }
       });

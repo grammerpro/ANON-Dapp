@@ -55,7 +55,7 @@ export default function CanvasBackdrop() {
         radius: Math.random() * 2 + 1.5,
         pulse: Math.random() * Math.PI,
         pulseSpeed: 0.02 + Math.random() * 0.03,
-        color: Math.random() > 0.3 ? "rgba(0, 243, 255, " : "rgba(189, 0, 255, ",
+        color: Math.random() > 0.35 ? "rgba(120, 86, 255, " : "rgba(54, 249, 246, ",
       });
     }
 
@@ -66,7 +66,7 @@ export default function CanvasBackdrop() {
         to: toNode,
         progress: 0,
         speed: 0.005 + Math.random() * 0.01,
-        color: fromNode.color.includes("0, 243") ? "#00f3ff" : "#bd00ff",
+        color: fromNode.color.includes("54, 249") ? "#36f9f6" : "#7856ff",
       });
     };
 
@@ -111,7 +111,7 @@ export default function CanvasBackdrop() {
             ctx.beginPath();
             ctx.moveTo(node1.x, node1.y);
             ctx.lineTo(node2.x, node2.y);
-            ctx.strokeStyle = `rgba(0, 243, 255, ${alpha})`;
+            ctx.strokeStyle = `rgba(120, 86, 255, ${alpha})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -129,7 +129,7 @@ export default function CanvasBackdrop() {
             ctx.beginPath();
             ctx.moveTo(node.x, node.y);
             ctx.lineTo(mouse.x, mouse.y);
-            ctx.strokeStyle = `rgba(189, 0, 255, ${alpha})`;
+            ctx.strokeStyle = `rgba(255, 121, 198, ${alpha})`;
             ctx.lineWidth = 0.7;
             ctx.stroke();
 
